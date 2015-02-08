@@ -67,6 +67,10 @@ for (i in 1:7) {
     plot(attributes(ts.w[[i]])[[1]], ts.w[[i]], type="l", main=w.names[i])
 }
 
+# and again, all week
+plot(attributes(ts)[[1]],ts, type="l", col="red", main="All week" )
+
+
 # x: string containing date in the format YYYY-mm-dd
 # w.names: vector containing days of week, whose indexes correspond to tables with 
 # average number of steps for that day of the week / interval
@@ -89,6 +93,23 @@ for (i in 1:length(s.new)) {
         s.new[[i]] <- x
     }
 }
+
+data.new <- unsplit(s.new, data$date)
+
+ts.new <- sapply(split(data.new$steps, data.new$interval), mean )
+lines(attributes(ts.new)[[1]],ts.new, col="blue" )
+
+# ..and find array with total of steps per each day
+s.new.sum<-sapply(s.new, function(r) { sum(r$steps,na.rm=T)})
+
+# 3.1 histogram with totals per each day
+hist(s.new.sum)
+
+# 3.1 mean and median
+mean(s.new.sum)
+median(s.new.sum)
+
+# part 4
 
 # test if is weekend
 weekdays(strptime(data[,2],"%Y-%m-%d")) %in% c("Saturday", "Sunday")

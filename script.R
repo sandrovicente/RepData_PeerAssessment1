@@ -111,5 +111,12 @@ median(s.new.sum)
 
 # part 4
 
-# test if is weekend
-weekdays(strptime(data[,2],"%Y-%m-%d")) %in% c("Saturday", "Sunday")
+# set a weekend flag
+data$isWeekend <- data$weekday %in% c("Saturday", "Sunday")
+
+ts.weekend <- with(data[data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
+ts.weekday <- with(data[!data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
+
+par(mfrow = c(1, 2))
+plot(attributes(ts.weekday)[[1]], ts.weekday, type="l", main="Weekdays")
+plot(attributes(ts.weekend)[[1]], ts.weekend, type="l", main="Weekends")

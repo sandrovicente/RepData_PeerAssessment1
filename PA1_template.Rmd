@@ -8,18 +8,153 @@ output:
 
 ## Loading and preprocessing the data
 
-
+### load data 
+```{r loading} 
+data <- read.csv(unzip("activity.zip", "activity.csv"))
+dim(data)
+```
 
 ## What is mean total number of steps taken per day?
 
+#### Obtain total of steps for each day
+```{r histogram }
+s <- split(data, data$date)
+s.sum<-sapply(s, function(r) { sum(r$steps,na.rm=T)})
+hist(s.sum, main="Total steps for each day", xlab="Total steps")
+```
 
+#### Mean and median of total steps per day
+
+```{r }
+mean(s.sum)
+median(s.sum)
+```
 
 ## What is the average daily activity pattern?
 
+Generate a plot of a time series containing the mean number of steps for each interval across all days 
+```{r}
+ts <- sapply(split(data$steps, data$interval), function(x) { mean(x, na.rm=T) } )
+plot(attributes(ts)[[1]], ts, type="l", main="Mean number of steps / intervall across all days", 
+    xlab="Intervals", ylab="Avg #steps")
+```
 
+Find the interval in the time series above with maximum average number of steps 
 
-## Imputing missing values
+```{r}
+attributes(ts)[[1]][which.max(ts)]
+```
 
+## Inputing missing values
 
+The number of good values and the number of missing values are
+```{r}
+r.good <- sum(!is.na(data$steps))
+r.missing <- sum(is.na(data$steps))
+```
+
+The number of good readings is `r r.good` and of missing values is `r r.missing`.
+The percentage of missing values is 
+```{r}
+r.missing/r.good*100
+```
+
+Checking the distribution of missing (1) values against good values (2)
+
+```{r}
+sapply(s, function (x) { c(sum(is.na(x$steps)), sum(!is.na(x$steps))) })
+```
+
+We can see that missing values involve all readings of a day. 
+
+Therefore we have to fill all intervals of such days with estimated values. 
+The best approach is fill the gap using the mean number of steps/intervals for the corresponding day of the week.
+
+#### Steps to estimate values for missing days
+
+1. Include weekdays in main datasource
+```{r}
+data$weekday <- weekdays(strptime(data[,2],"%Y-%m-%d"))
+```
+
+2. Split datasets for each weekday
+```{r}
+s.wday <- split(data, data$weekday)
+```
+
+3. Obtain names of weedays
+```{r}
+w.names <- attributes(s.wday)[[1]]
+```
+
+4. Compute time series of mean number of steps / interval for corresponding weekday 
+```{r}
+ts.w <- list()
+i <- 0 
+for (v in s.wday) { 
+    i <- i+1;
+    ts.w[[i]] <- sapply(split(v$steps, v$interval), function(r) { mean (r, na.rm=T)} )  
+}
+```
+
+5. The names of weekdays obtanined in (3) correspond to the time series obtained in (4). Define a function to map dates -> weekdays (3) -> index of the time series calculated in 4
+```{r}
+# x: string containing date in the format YYYY-mm-dd
+# w.names: vector containing days of week, whose indexes correspond to tables with 
+# average number of steps for that day of the week / interval
+
+get.day.index <- function (x, w.names) {
+    x.wd <- weekdays(strptime(x, "%Y-%m-%d")); 
+    which(w.names==x.wd)
+}
+```
+
+6. Finally, create a replica of the original data filling in values for days with missing readings using estimated values for the corresponding weekday
+```{r}
+s.new <- s
+for (i in 1:length(s.new)) {
+    is.missing <- sum(is.na(s.new[[i]]$steps)) != 0    
+    if (is.missing) {
+        x <- s.new[[i]]
+        day.index <- get.day.index(x$date[1],w.names)
+        x$steps <- ts.w[[day.index]]
+        s.new[[i]] <- x
+    }
+}
+data.new <- unsplit(s.new, data$date)
+```
+
+7. Plot the histogram with the total of steps per each day using dataset containing estimated values
+
+```{r}
+s.new.sum<-sapply(s.new, function(r) { sum(r$steps,na.rm=T)})
+hist(s.new.sum, main="Total steps for each day (with estimations for missing values)", xlab="Total steps")
+```
+
+and calculate mean and median over the new dataset.
+
+```{r}
+mean(s.new.sum)
+median(s.new.sum)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First, set a weekend flag in the main datasource
+```{r}
+data$isWeekend <- data$weekday %in% c("Saturday", "Sunday")
+```
+
+And calculate a time series for weekends and weekdays
+
+```{r}
+ts.weekend <- with(data[data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
+ts.weekday <- with(data[!data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
+```
+
+Show the plot for both time series
+```{r}
+par(mfrow = c(1, 2))
+plot(attributes(ts.weekday)[[1]], ts.weekday, type="l", main="Weekdays", xlab="Intervals", ylab="Average amount of steps")
+plot(attributes(ts.weekend)[[1]], ts.weekend, type="l", main="Weekends", xlab="Intervals", ylab="Average amount of steps")
+```

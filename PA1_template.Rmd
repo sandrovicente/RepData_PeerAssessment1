@@ -8,7 +8,7 @@ output:
 
 ## Loading and preprocessing the data
 
-### load data 
+#### load data 
 ```{r loading} 
 data <- read.csv(unzip("activity.zip", "activity.csv"))
 dim(data)
@@ -16,15 +16,14 @@ dim(data)
 
 ## What is mean total number of steps taken per day?
 
-#### Obtain total of steps for each day
+Generates Histogram of the total number of steps per day
 ```{r histogram }
 s <- split(data, data$date)
 s.sum<-sapply(s, function(r) { sum(r$steps,na.rm=T)})
 hist(s.sum, main="Total steps for each day", xlab="Total steps")
 ```
 
-#### Mean and median of total steps per day
-
+And calculate mean and median
 ```{r }
 mean(s.sum)
 median(s.sum)
@@ -35,12 +34,11 @@ median(s.sum)
 Generate a plot of a time series containing the mean number of steps for each interval across all days 
 ```{r}
 ts <- sapply(split(data$steps, data$interval), function(x) { mean(x, na.rm=T) } )
-plot(attributes(ts)[[1]], ts, type="l", main="Mean number of steps / intervall across all days", 
+plot(attributes(ts)[[1]], ts, type="l", main="Mean number of steps / interval across all days", 
     xlab="Intervals", ylab="Avg #steps")
 ```
 
 Find the interval in the time series above with maximum average number of steps 
-
 ```{r}
 attributes(ts)[[1]][which.max(ts)]
 ```
@@ -60,7 +58,6 @@ r.missing/r.good*100
 ```
 
 Checking the distribution of missing (1) values against good values (2)
-
 ```{r}
 sapply(s, function (x) { c(sum(is.na(x$steps)), sum(!is.na(x$steps))) })
 ```
@@ -87,7 +84,7 @@ s.wday <- split(data, data$weekday)
 w.names <- attributes(s.wday)[[1]]
 ```
 
-4. Compute time series of mean number of steps / interval for corresponding weekday 
+4. Compute time series of mean number of steps / interval for each weekday 
 ```{r}
 ts.w <- list()
 i <- 0 
@@ -125,18 +122,24 @@ data.new <- unsplit(s.new, data$date)
 ```
 
 7. Plot the histogram with the total of steps per each day using dataset containing estimated values
-
 ```{r}
 s.new.sum<-sapply(s.new, function(r) { sum(r$steps,na.rm=T)})
 hist(s.new.sum, main="Total steps for each day (with estimations for missing values)", xlab="Total steps")
 ```
 
 and calculate mean and median over the new dataset.
-
 ```{r}
 mean(s.new.sum)
 median(s.new.sum)
 ```
+
+Comparing against the histogram obtained for the original dataset, which desconsidered NA values, there are two perceptible differences:
+
+* There is a bias of higher frequency towards the range of 0-5000 steps for the original dataset. In the dataset using estimated values, the frequency for the same range is significantly lower.
+
+* As a consequence, the peak of frequency is higher for the range of 10K-15k steps in the histogram using estimated values compared to the dataset including NAs.
+
+Additionally, the mean and median are higher for the dataset including estimated values as well.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -146,7 +149,6 @@ data$isWeekend <- data$weekday %in% c("Saturday", "Sunday")
 ```
 
 And calculate a time series for weekends and weekdays
-
 ```{r}
 ts.weekend <- with(data[data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
 ts.weekday <- with(data[!data$isWeekend,], sapply(split(steps, interval), function(x) { mean(x, na.rm=T) }))
@@ -158,3 +160,9 @@ par(mfrow = c(1, 2))
 plot(attributes(ts.weekday)[[1]], ts.weekday, type="l", main="Weekdays", xlab="Intervals", ylab="Average amount of steps")
 plot(attributes(ts.weekend)[[1]], ts.weekend, type="l", main="Weekends", xlab="Intervals", ylab="Average amount of steps")
 ```
+
+Comparing both plots we can see reasonable differences between the activity patterns.
+
+* Weekdays: There is a peek of activity in the morning (reaching over 200 steps) followed by moderate activity along the day (less than 200 steps). There is a a smaller spike by the end of the working hours (over 100) which closes the amount of activity for the day.
+
+* Weekends: The peek of activity in the morning remains, slightly smaller than during the weekdays. Howerver the amount of activity is reasonably distributed along the day and suddenly drops at night. 

@@ -31,10 +31,10 @@ median(s.sum)
 
 ## What is the average daily activity pattern?
 
-Generate a plot of a time series containing the mean number of steps for each interval across all days 
+Generate a plot of a time series containing the average number of steps for each interval across all days 
 ```{r}
 ts <- sapply(split(data$steps, data$interval), function(x) { mean(x, na.rm=T) } )
-plot(attributes(ts)[[1]], ts, type="l", main="Mean number of steps / interval across all days", 
+plot(attributes(ts)[[1]], ts, type="l", main="Average number of steps / interval across all days", 
     xlab="Intervals", ylab="Avg #steps")
 ```
 
@@ -45,13 +45,13 @@ attributes(ts)[[1]][which.max(ts)]
 
 ## Inputing missing values
 
-The number of good values and the number of missing values are
+The number of good values and the number of missing values are given by
 ```{r}
 r.good <- sum(!is.na(data$steps))
 r.missing <- sum(is.na(data$steps))
 ```
 
-The number of good readings is `r r.good` and of missing values is `r r.missing`.
+The number of good readings is **`r r.good`** and of missing values is **`r r.missing`**.
 The percentage of missing values is 
 ```{r}
 r.missing/r.good*100
@@ -64,8 +64,10 @@ sapply(s, function (x) { c(sum(is.na(x$steps)), sum(!is.na(x$steps))) })
 
 We can see that missing values involve all readings of a day. 
 
-Therefore we have to fill all intervals of such days with estimated values. 
-The best approach is fill the gap using the mean number of steps/intervals for the corresponding day of the week.
+Therefore we have to fill all intervals of the missing days with estimated values. 
+The approach adopted was to input the missing values for each interval with the average number of steps for the corresponding interval on the same day of the week.
+
+*e.g.* If all readings of a Wednesday are missing, obtain the average of readings for each interval across all Wednesdays. Then fill missing value for each interval with the calculated average for the corresponding interval.
 
 #### Steps to estimate values for missing days
 
@@ -94,11 +96,12 @@ for (v in s.wday) {
 }
 ```
 
-5. The names of weekdays obtanined in (3) correspond to the time series obtained in (4). Define a function to map dates -> weekdays (3) -> index of the time series calculated in 4
+5. The names of weekdays obtanined in (3) correspond to the time series obtained in (4). Define a function to map dates -> weekdays (3) -> index of the time series calculated in (4)
 ```{r}
 # x: string containing date in the format YYYY-mm-dd
 # w.names: vector containing days of week, whose indexes correspond to tables with 
 # average number of steps for that day of the week / interval
+# returns: index of time series containing averages for the day of the week corresponding to 'x' 
 
 get.day.index <- function (x, w.names) {
     x.wd <- weekdays(strptime(x, "%Y-%m-%d")); 
@@ -106,7 +109,7 @@ get.day.index <- function (x, w.names) {
 }
 ```
 
-6. Finally, create a replica of the original data filling in values for days with missing readings using estimated values for the corresponding weekday
+6. Finally, create a replica of the original dataset, filling in values for days with missing readings using estimated values for the corresponding weekday
 ```{r}
 s.new <- s
 for (i in 1:length(s.new)) {
@@ -123,7 +126,7 @@ data.new <- unsplit(s.new, data$date)
 
 7. Plot the histogram with the total of steps per each day using dataset containing estimated values
 ```{r}
-s.new.sum<-sapply(s.new, function(r) { sum(r$steps,na.rm=T)})
+s.new.sum<-sapply(s.new, function(r) { sum(r$steps)})
 hist(s.new.sum, main="Total steps for each day (with estimations for missing values)", xlab="Total steps")
 ```
 
